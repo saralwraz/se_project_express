@@ -6,7 +6,8 @@
   "author": "Sara Raz",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "mongoose": "^6.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
