@@ -1,4 +1,10 @@
 {
+  "name": "se_project_express",
+  "version": "0.1.0",
+  "description": "backend for WTWR app",
+  "main": "app.js",
+  "author": "Sara Raz",
+  "license": "ISC",
   "dependencies": {
     "express": "^4.21.1"
   },
@@ -6,7 +12,15 @@
     "@eslint/js": "^9.13.0",
     "eslint": "^8.57.1",
     "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.31.0",
-    "globals": "^15.11.0"
+    "globals": "^15.11.0",
+    "nodemon": "^3.1.7",
+    "prettier": "^3.3.3"
+  },
+  "scripts": {
+    "lint": "npx eslint .",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   }
 }

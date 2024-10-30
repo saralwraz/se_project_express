@@ -12,11 +12,11 @@ export default [
         ...globals.node,
       },
     },
-    plugins: {
-      airbnbBase,
-    },
+    extends: ["eslint:recommended", "eslint-config-airbnb-base"],
+    plugins: ["prettier"],
     rules: {
-      // Add any specific rules you need to configure
+      "no-console": "off",
+      "no-underscore-dangle": ["error", { allow: ["_id"] }],
     },
   },
 ];
