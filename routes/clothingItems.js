@@ -5,6 +5,8 @@ const {
   createItem,
   getItems,
   deleteItem,
+  likeItem,
+  unlikeItem,
 } = require("../controllers/clothingItems");
 
 // createItem
@@ -15,6 +17,12 @@ router.get("/", getItems);
 
 // deleteItem
 router.delete("/:itemId", deleteItem);
+
+// likeItem
+router.put("/:itemId/likes", likeItem);
+
+// unlikeItem
+router.delete("/:itemId/likes", unlikeItem);
 
 // Handling non-existent resources
 router.use((req, res) => {

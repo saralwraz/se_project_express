@@ -1,58 +1,48 @@
 const { err500, err404, err400 } = require("../utils/errors");
 const clothingItem = require("../models/clothingItem");
 
+const handleErrors = (err, res) => {
+  console.error(err);
+  if (err.name === "ValidationError") {
+    res.status(err400.status).send({ message: err400.message });
+  } else if (err.name === "DocumentNotFoundError") {
+    res.status(err404.status).send({ message: err404.message });
+  } else {
+    res.status(err500.status).send({ message: err500.message });
+  }
+};
+
+// GET /items - Get all items
 const getItems = (req, res) => {
   clothingItem
     .find({})
     .then((items) => res.status(200).send(items))
-    .catch((err) => {
-      console.error(err);
-      return res.status(err500.status).send({ message: err.message });
-    });
+    .catch((err) => handleErrors(err, res));
 };
 
+// POST /items - Create a new item
 const createItem = (req, res) => {
   const { name, weather, imageUrl } = req.body;
 
   clothingItem
     .create({ name, weather, imageUrl, owner: req.user._id })
-    .then((item) => {
-      res.status(201).send({ data: item });
-    })
-    .catch((err) => {
-      console.error(err.name);
-      if (err.name === "ValidationError") {
-        res.status(err400.status).send({ message: err.message });
-      } else {
-        return res.status(err500.status).send({ message: err.message });
-      }
-      return err;
-    });
+    .then((item) => res.status(201).send({ data: item }))
+    .catch((err) => handleErrors(err, res));
 };
 
+// DELETE /items/:itemId - Delete an item by ID
 const deleteItem = (req, res) => {
   const { itemId } = req.params;
+
   clothingItem
     .findById(itemId)
-    .orFail()
-    .then((item) =>
-      item
-        .remove()
-        .then(() => res.status(200).send({ message: "Item Deleted" })),
-    )
-    .catch((err) => {
-      console.error(err);
-      if (err.name === "DocumentNotFoundError") {
-        res.status(err404.status).send({ message: err404.message });
-      } else if (err.name === "RequestError") {
-        res.status(err400.status).send({ message: err400.message });
-      } else {
-        return res.status(err500.status).send({ message: err.message });
-      }
-      return err;
-    });
+    .orFail(new Error("DocumentNotFoundError"))
+    .then((item) => item.remove())
+    .then(() => res.status(200).send({ message: "Item Deleted" }))
+    .catch((err) => handleErrors(err, res));
 };
 
+// PUT /items/:itemId/likes - Like an item
 const likeItem = (req, res) => {
   clothingItem
     .findByIdAndUpdate(
@@ -60,25 +50,12 @@ const likeItem = (req, res) => {
       { $addToSet: { likes: req.user._id } },
       { new: true },
     )
-    .orFail()
-    .then((like) => {
-      res.status(200).send(like);
-    })
-    .catch((err) => {
-      console.error(err);
-      if (err.name === "ValidationError") {
-        res.status(err400.status).send({ message: err.message });
-      } else if (err.name === "CastError") {
-        res.status(err400.status).send({ message: err400.message });
-      } else if (err.name === "DocumentNotFoundError") {
-        res.status(err404.status).send({ message: err404.message });
-      } else {
-        res.status(err500.status).send({ message: err.message });
-      }
-      return err;
-    });
+    .orFail(new Error("DocumentNotFoundError"))
+    .then((like) => res.status(200).send(like))
+    .catch((err) => handleErrors(err, res));
 };
 
+// DELETE /items/:itemId/likes - Unlike an item
 const unlikeItem = (req, res) => {
   clothingItem
     .findByIdAndUpdate(
@@ -86,27 +63,9 @@ const unlikeItem = (req, res) => {
       { $pull: { likes: req.user._id } },
       { new: true },
     )
-    .orFail()
-    .then((unlike) => {
-      res.status(200).send(unlike);
-    })
-    .catch((err) => {
-      console.error(err);
-      if (err.name === "ValidationError") {
-        res.status(err400.status).send({ message: err.message });
-      } else if (err.name === "RequestError") {
-        res.status(err400.status).send({ message: err400.message });
-      } else if (err.name === "DocumentNotFoundError") {
-        res.status(err404.status).send({ message: err404.message });
-      } else {
-        res.status(err500.status).send({ message: err.message });
-      }
-      return err;
-    });
-};
-
-module.exports.createClothingItem = (req, res) => {
-  console.log(req.user._id); // _id will become accessible
+    .orFail(new Error("DocumentNotFoundError"))
+    .then((unlike) => res.status(200).send(unlike))
+    .catch((err) => handleErrors(err, res));
 };
 
 module.exports = { getItems, createItem, deleteItem, likeItem, unlikeItem };

@@ -33,12 +33,14 @@ const getUserByID = (req, res) => {
 // POST /users - create new user
 
 const createUser = (req, res) => {
-  console.log(req.body); // Log the incoming request body for debugging
   const { name, avatar } = req.body;
   User.create({ name, avatar })
     .then((user) => res.status(201).send(user))
     .catch((err) => {
       console.log(err);
+      if (err.message === "NotFound") {
+        return res.status(err404.status).send({ message: "User not found" });
+      }
       if (err.name === "ValidationError") {
         return res.status(400).send({ message: err.message });
       }
