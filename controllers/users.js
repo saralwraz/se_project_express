@@ -13,22 +13,20 @@ const getUsers = (req, res) => {
 };
 
 // GET /users/:userId
-
 const getUserByID = (req, res) => {
-  const { userID } = req.params;
-  User.findById(userID)
+  const { id } = req.params;
+  User.findById(id)
+    .orFail(new Error("NotFound"))
     .then((user) => res.status(200).send(user))
-    .orFail()
     .catch((err) => {
-      console.log(err);
-      if (err.name === "DocumentNotFoundError") {
-        res.status(err404.status).send({ message: err.message });
-      } else if (err.name === "RequestError") {
-        res.status(err400.status).send({ message: err.message });
-      } else {
-        res.status(err500.status).send({ message: err.message });
+      console.error(err);
+      if (err.message === "NotFound") {
+        return res.status(err404.status).send({ message: "User not found" });
       }
-      return err;
+      if (err.name === "CastError") {
+        return res.status(err400.status).send({ message: "Invalid user ID" });
+      }
+      return res.status(err500.status).send({ message: "An error occurred" });
     });
 };
 
