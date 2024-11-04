@@ -33,15 +33,16 @@ const getUserByID = (req, res) => {
 // POST /users - create new user
 
 const createUser = (req, res) => {
+  console.log(req.body); // Log the incoming request body for debugging
   const { name, avatar } = req.body;
   User.create({ name, avatar })
     .then((user) => res.status(201).send(user))
     .catch((err) => {
       console.log(err);
       if (err.name === "ValidationError") {
-        return res.status(err400.status).send({ message: err.message });
+        return res.status(400).send({ message: err.message });
       }
-      return res.status(err500.status).send({ message: err.message });
+      return res.status(500).send({ message: err.message });
     });
 };
 

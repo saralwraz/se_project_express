@@ -105,4 +105,8 @@ const unlikeItem = (req, res) => {
     });
 };
 
+module.exports.createClothingItem = (req, res) => {
+  console.log(req.user._id); // _id will become accessible
+};
+
 module.exports = { getItems, createItem, deleteItem, likeItem, unlikeItem };

@@ -2,7 +2,6 @@ const express = require("express");
 const app = express();
 const { getUsers, getUserByID, createUser } = require("./controllers/users");
 const { PORT = 3001 } = process.env;
-const cors = require("cors");
 const mongoose = require("mongoose");
 
 mongoose
@@ -14,6 +13,13 @@ mongoose
 
 app.listen(PORT, () => {
   console.log(`Server is running on port 3001`);
+});
+
+app.use((req, res, next) => {
+  req.user = {
+    _id: "6729155c33bb8bf38b5a2820",
+  };
+  next();
 });
 
 app.use(express.json());
