@@ -1,16 +1,22 @@
+const mongoose = require("mongoose");
 const { err500, err404, err400 } = require("../utils/errors");
 const clothingItem = require("../models/clothingItem");
 
+// Error handling
 const handleErrors = (err, res) => {
   console.error(err);
+  res.setHeader("Content-Type", "application/json");
   if (err.name === "ValidationError") {
     res.status(err400.status).send({ message: err400.message });
-  } else if (err.name === "DocumentNotFoundError") {
+  } else if (err.message === "DocumentNotFoundError") {
     res.status(err404.status).send({ message: err404.message });
   } else {
     res.status(err500.status).send({ message: err500.message });
   }
 };
+
+// Check valid ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // GET /items - Get all items
 const getItems = (req, res) => {
@@ -34,6 +40,10 @@ const createItem = (req, res) => {
 const deleteItem = (req, res) => {
   const { itemId } = req.params;
 
+  if (!isValidObjectId(itemId)) {
+    return res.status(err400.status).send({ message: "Invalid ID format" });
+  }
+
   clothingItem
     .findById(itemId)
     .orFail(new Error("DocumentNotFoundError"))
@@ -44,9 +54,15 @@ const deleteItem = (req, res) => {
 
 // PUT /items/:itemId/likes - Like an item
 const likeItem = (req, res) => {
+  const { itemId } = req.params;
+
+  if (!isValidObjectId(itemId)) {
+    return res.status(err400.status).send({ message: "Invalid ID format" });
+  }
+
   clothingItem
     .findByIdAndUpdate(
-      req.params.itemId,
+      itemId,
       { $addToSet: { likes: req.user._id } },
       { new: true },
     )
@@ -57,9 +73,15 @@ const likeItem = (req, res) => {
 
 // DELETE /items/:itemId/likes - Unlike an item
 const unlikeItem = (req, res) => {
+  const { itemId } = req.params;
+
+  if (!isValidObjectId(itemId)) {
+    return res.status(err400.status).send({ message: "Invalid ID format" });
+  }
+
   clothingItem
     .findByIdAndUpdate(
-      req.params.itemId,
+      itemId,
       { $pull: { likes: req.user._id } },
       { new: true },
     )

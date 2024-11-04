@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const validator = require("validator");
 
 const clothingSchema = new mongoose.Schema({
   name: {
@@ -12,7 +13,7 @@ const clothingSchema = new mongoose.Schema({
     enum: ["hot", "warm", "cold"],
     required: true,
   },
-  imageURL: {
+  imageUrl: {
     type: String,
     required: [true, "This field is required."],
     validate: {
