@@ -14,9 +14,10 @@ const getUsers = (req, res) => {
 
 // GET /users/:userId
 const getUserByID = (req, res) => {
-  const { id } = req.params;
-  User.findById(id)
-    .orFail(new Error("NotFound"))
+  console.log(req.params);
+  const { userId } = req.params;
+  User.findById(userId)
+    .orFail()
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       console.error(err);

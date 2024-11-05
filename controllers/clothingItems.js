@@ -8,7 +8,7 @@ const handleErrors = (err, res) => {
   res.setHeader("Content-Type", "application/json");
   if (err.name === "ValidationError") {
     res.status(err400.status).send({ message: err400.message });
-  } else if (err.message === "DocumentNotFoundError") {
+  } else if (err.name === "DocumentNotFoundError") {
     res.status(err404.status).send({ message: err404.message });
   } else {
     res.status(err500.status).send({ message: err500.message });
@@ -46,7 +46,7 @@ const deleteItem = (req, res) => {
 
   clothingItem
     .findById(itemId)
-    .orFail(new Error("DocumentNotFoundError"))
+    .orFail()
     .then((item) => item.remove())
     .then(() => res.status(200).send({ message: "Item Deleted" }))
     .catch((err) => handleErrors(err, res));
@@ -66,9 +66,14 @@ const likeItem = (req, res) => {
       { $addToSet: { likes: req.user._id } },
       { new: true },
     )
-    .orFail(new Error("DocumentNotFoundError"))
-    .then((like) => res.status(200).send(like))
-    .catch((err) => handleErrors(err, res));
+    .orFail()
+    .then((like) => {
+      res.status(200).send(like);
+    })
+    .catch((err) => {
+      handleErrors(err, res);
+      console.error(err);
+    });
 };
 
 // DELETE /items/:itemId/likes - Unlike an item
