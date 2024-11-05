@@ -8,26 +8,25 @@ const getUsers = (req, res) => {
     .then((users) => res.send(users))
     .catch((err) => {
       console.error(err);
-      return res.status(err500.status).send({ message: err.message });
+      return res.status(err500.status).send({ message: err500.message });
     });
 };
 
 // GET /users/:userId
 const getUserByID = (req, res) => {
-  console.log(req.params);
   const { userId } = req.params;
   User.findById(userId)
-    .orFail()
+    .orFail(new Error("DocumentNotFoundError"))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       console.error(err);
-      if (err.message === "NotFound") {
-        return res.status(err404.status).send({ message: "User not found" });
+      if (err.message === "DocumentNotFoundError") {
+        return res.status(404).send({ message: err404.message });
       }
       if (err.name === "CastError") {
-        return res.status(err400.status).send({ message: "Invalid user ID" });
+        return res.status(400).send({ message: err400.message });
       }
-      return res.status(err500.status).send({ message: "An error occurred" });
+      return res.status(500).send({ message: err500.message });
     });
 };
 
@@ -39,13 +38,13 @@ const createUser = (req, res) => {
     .then((user) => res.status(201).send(user))
     .catch((err) => {
       console.log(err);
-      if (err.message === "NotFound") {
+      if (err.message === "DocumentNotFoundError") {
         return res.status(err404.status).send({ message: "User not found" });
       }
       if (err.name === "ValidationError") {
-        return res.status(400).send({ message: err.message });
+        return res.status(400).send({ message: err400.message });
       }
-      return res.status(500).send({ message: err.message });
+      return res.status(500).send({ message: err500.message });
     });
 };
 

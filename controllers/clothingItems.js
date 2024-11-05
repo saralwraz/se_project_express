@@ -41,7 +41,7 @@ const deleteItem = (req, res) => {
   const { itemId } = req.params;
 
   if (!isValidObjectId(itemId)) {
-    return res.status(err400.status).send({ message: "Invalid ID format" });
+    return res.status(err400.status).send({ message: err400.message });
   }
 
   clothingItem
@@ -57,7 +57,7 @@ const likeItem = (req, res) => {
   const { itemId } = req.params;
 
   if (!isValidObjectId(itemId)) {
-    return res.status(err400.status).send({ message: "Invalid ID format" });
+    return res.status(err400.status).send({ message: err400.message });
   }
 
   clothingItem
@@ -81,7 +81,7 @@ const unlikeItem = (req, res) => {
   const { itemId } = req.params;
 
   if (!isValidObjectId(itemId)) {
-    return res.status(err400.status).send({ message: "Invalid ID format" });
+    return res.status(err400.status).send({ message: err400.message });
   }
 
   clothingItem
@@ -90,7 +90,7 @@ const unlikeItem = (req, res) => {
       { $pull: { likes: req.user._id } },
       { new: true },
     )
-    .orFail(new Error("DocumentNotFoundError"))
+    .orFail()
     .then((unlike) => res.status(200).send(unlike))
     .catch((err) => handleErrors(err, res));
 };

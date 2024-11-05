@@ -24,11 +24,4 @@ router.put("/:itemId/likes", likeItem);
 // unlikeItem
 router.delete("/:itemId/likes", unlikeItem);
 
-// Handling non-existent resources
-router.use((req, res) => {
-  res.status(404).json({
-    message: "Requested resource not found",
-  });
-});
-
 module.exports = router;
