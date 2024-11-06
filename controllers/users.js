@@ -1,7 +1,7 @@
 const User = require("../models/user");
 const { err500, err404, err400 } = require("../utils/errors");
 
-//GET /users
+// GET /users
 
 const getUsers = (req, res) => {
   User.find({})

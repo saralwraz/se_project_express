@@ -44,7 +44,7 @@ const deleteItem = (req, res) => {
     return res.status(err400.status).send({ message: err400.message });
   }
 
-  clothingItem
+  return clothingItem
     .findById(itemId)
     .orFail()
     .then((item) => item.remove())
@@ -60,7 +60,7 @@ const likeItem = (req, res) => {
     return res.status(err400.status).send({ message: err400.message });
   }
 
-  clothingItem
+  return clothingItem
     .findByIdAndUpdate(
       itemId,
       { $addToSet: { likes: req.user._id } },
@@ -84,7 +84,7 @@ const unlikeItem = (req, res) => {
     return res.status(err400.status).send({ message: err400.message });
   }
 
-  clothingItem
+  return clothingItem
     .findByIdAndUpdate(
       itemId,
       { $pull: { likes: req.user._id } },
