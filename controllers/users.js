@@ -1,7 +1,7 @@
 const User = require("../models/user");
 const { err500, err404, err400 } = require("../utils/errors");
 
-// GET /users
+//GET /users
 
 const getUsers = (req, res) => {
   User.find({})
@@ -20,6 +20,9 @@ const getUserByID = (req, res) => {
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       console.error(err);
+      if (err.message === "DocumentNotFoundError") {
+        return res.status(err404.status).send({ message: "User not found" });
+      }
       if (err.name === "CastError") {
         return res.status(err400.status).send({ message: err400.message });
       }
@@ -35,9 +38,6 @@ const createUser = (req, res) => {
     .then((user) => res.status(201).send(user))
     .catch((err) => {
       console.log(err);
-      if (err.message === "DocumentNotFoundError") {
-        return res.status(err404.status).send({ message: "User not found" });
-      }
       if (err.name === "ValidationError") {
         return res.status(err400.status).send({ message: err400.message });
       }
