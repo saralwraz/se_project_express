@@ -29,4 +29,7 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
+app.post("/signin", login);
+app.post("/signup", createUser);
+
 module.exports = app;

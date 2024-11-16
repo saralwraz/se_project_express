@@ -1,6 +1,7 @@
 const User = require("../models/user");
 const { err500, err404, err400 } = require("../utils/errors");
 const bcrypt = require("bcryptjs");
+const JWT_SECRET = require("../utils/config");
 
 //GET /users
 
@@ -70,4 +71,30 @@ const createUser = (req, res) => {
     );
 };
 
-module.exports = { getUsers, getUserByID, createUser };
+const login = (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).send({ message: "Email and password are required" });
+  }
+
+  User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
+        expiresIn: "7d",
+      });
+      res.status(200).send({ token });
+    })
+    .catch((err) => {
+      if (
+        err.message === "Incorrect email address" ||
+        err.message === "Incorrect password"
+      ) {
+        res.status(401).send({ message: "Invalid email or password" });
+      } else {
+        res.status(500).send({ message: "An error occurred on the server" });
+      }
+    });
+};
+
+module.exports = { getUsers, getUserByID, createUser, login };
