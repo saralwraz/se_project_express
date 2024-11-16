@@ -34,16 +34,40 @@ const getUserByID = (req, res) => {
 // POST /users - create new user
 
 const createUser = (req, res) => {
-  const { name, avatar } = req.body;
-  User.create({ name, avatar })
-    .then((user) => res.status(201).send(user))
-    .catch((err) => {
-      console.log(err);
-      if (err.name === "ValidationError") {
-        return res.status(err400.status).send({ message: err400.message });
+  const { name, avatar, email, password } = req.body;
+
+  // Check if the email already exists
+  User.findOne({ email })
+    .then((existingUser) => {
+      if (existingUser) {
+        return res
+          .status(400)
+          .send({ message: "User with this email already exists" });
       }
-      return res.status(err500.status).send({ message: err500.message });
-    });
+
+      // Hash password
+      return bcrypt.hash(password, 10);
+    })
+    .then((hash) =>
+      User.create({
+        name,
+        avatar,
+        email,
+        password: hash,
+      })
+        .then(() => res.status(201).send({ name, avatar, email }))
+        .catch((err) => {
+          if (err.code === 11000) {
+            res
+              .status(400)
+              .send({ message: "User with this email already exists" });
+          } else if (err.name === "ValidationError") {
+            res.status(400).send({ message: "Check required fields" });
+          } else {
+            res.status(500).send({ message: "Internal Server Error" });
+          }
+        }),
+    );
 };
 
 module.exports = { getUsers, getUserByID, createUser };
