@@ -40,16 +40,32 @@ const createItem = (req, res) => {
 const deleteItem = (req, res) => {
   const { itemId } = req.params;
 
+  // Validate itemId format
   if (!isValidObjectId(itemId)) {
     return res.status(err400.status).send({ message: err400.message });
   }
 
-  return clothingItem
+  clothingItem
     .findById(itemId)
     .orFail()
-    .then((item) => item.remove())
-    .then(() => res.status(200).send({ message: "Item Deleted" }))
-    .catch((err) => handleErrors(err, res));
+    .then((item) => {
+      if (item.owner.toString() !== req.user._id) {
+        throw new Error("Forbidden");
+      }
+      return item.remove();
+    })
+    .then(() => res.status(200).send({ message: "Item successfully deleted" }))
+    .catch((err) => {
+      if (err.message === "NotFound") {
+        return res.status(err404.status).send({ message: err404.message });
+      }
+      if (err.message === "Forbidden") {
+        return res
+          .status(err403.status)
+          .send({ message: "You cannot delete this item" });
+      }
+      res.status(err500.status).send({ message: err500.message });
+    });
 };
 
 // PUT /items/:itemId/likes - Like an item
