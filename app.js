@@ -13,12 +13,6 @@ mongoose
   })
   .catch(console.error);
 
-// Middleware
-app.use((req, res, next) => {
-  req.user = { _id: "6729155c33bb8bf38b5a2820" };
-  next();
-});
-
 // JSON body parsing
 app.use(express.json());
 
