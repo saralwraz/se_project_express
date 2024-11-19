@@ -82,14 +82,13 @@ const likeItem = (req, res) => {
       { $addToSet: { likes: req.user._id } },
       { new: true },
     )
-    .orFail()
-    .then((like) => {
-      res.status(200).send(like);
+    .then((item) => {
+      if (!item) {
+        return res.status(err404.status).send({ message: err404.message });
+      }
+      res.status(200).send(item);
     })
-    .catch((err) => {
-      handleErrors(err, res);
-      console.error(err);
-    });
+    .catch((err) => handleErrors(err, res));
 };
 
 // DELETE /items/:itemId/likes - Unlike an item
@@ -106,9 +105,12 @@ const unlikeItem = (req, res) => {
       { $pull: { likes: req.user._id } },
       { new: true },
     )
-    .orFail()
-    .then((unlike) => res.status(200).send(unlike))
+    .then((item) => {
+      if (!item) {
+        return res.status(err404.status).send({ message: err404.message });
+      }
+      res.status(200).send(item);
+    })
     .catch((err) => handleErrors(err, res));
 };
-
 module.exports = { getItems, createItem, deleteItem, likeItem, unlikeItem };

@@ -25,7 +25,5 @@ app.listen(PORT, () => {
 });
 
 app.use(cors());
-app.post("/signin", login);
-app.post("/signup", createUser);
 
 module.exports = app;
