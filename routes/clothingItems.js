@@ -11,18 +11,18 @@ const {
 } = require("../controllers/clothingItems");
 
 // createItem
-router.post("/", createItem, auth);
+router.post("/", auth, createItem);
 
 // getItems
 router.get("/", getItems);
 
 // deleteItem
-router.delete("/:itemId", deleteItem, auth);
+router.delete("/:itemId", auth, deleteItem);
 
 // likeItem
-router.put("/:itemId/likes", likeItem, auth);
+router.put("/:itemId/likes", auth, likeItem);
 
 // unlikeItem
-router.delete("/:itemId/likes", unlikeItem, auth);
+router.delete("/:itemId/likes", auth, unlikeItem);
 
 module.exports = router;

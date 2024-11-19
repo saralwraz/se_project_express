@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { err500, err404, err400 } = require("../utils/errors");
+const { err500, err404, err400, err403 } = require("../utils/errors");
 const clothingItem = require("../models/clothingItem");
 
 // Error handling
@@ -10,6 +10,8 @@ const handleErrors = (err, res) => {
     res.status(err400.status).send({ message: err400.message });
   } else if (err.name === "DocumentNotFoundError") {
     res.status(err404.status).send({ message: err404.message });
+  } else if (err.name === "Forbidden") {
+    res.status(err403.status).send({ message: err403.message });
   } else {
     res.status(err500.status).send({ message: err500.message });
   }
@@ -30,6 +32,19 @@ const getItems = (req, res) => {
 const createItem = (req, res) => {
   const { name, weather, imageUrl } = req.body;
 
+  // Validate required
+  if (!name || !weather || !imageUrl) {
+    return res
+      .status(err400.status)
+      .send({ message: "Missing required fields for item creation" });
+  }
+
+  if (!req.user || !req.user._id) {
+    return res
+      .status(err400.status)
+      .send({ message: "User information is missing" });
+  }
+
   clothingItem
     .create({ name, weather, imageUrl, owner: req.user._id })
     .then((item) => res.status(201).send({ data: item }))
@@ -40,43 +55,39 @@ const createItem = (req, res) => {
 const deleteItem = (req, res) => {
   const { itemId } = req.params;
 
-  // Validate itemId format
-  if (!isValidObjectId(itemId)) {
-    return res.status(err400.status).send({ message: err400.message });
+  // Validate itemId
+  if (!itemId || !isValidObjectId(itemId)) {
+    return res
+      .status(err400.status)
+      .send({ message: "Invalid or missing item ID" });
   }
 
   clothingItem
     .findById(itemId)
-    .orFail()
+    .orFail(new Error("DocumentNotFoundError"))
     .then((item) => {
       if (item.owner.toString() !== req.user._id) {
-        throw new Error("Forbidden");
+        const err = new Error("You cannot delete this item");
+        err.name = "Forbidden";
+        throw err;
       }
       return item.remove();
     })
     .then(() => res.status(200).send({ message: "Item successfully deleted" }))
-    .catch((err) => {
-      if (err.message === "NotFound") {
-        return res.status(err404.status).send({ message: err404.message });
-      }
-      if (err.message === "Forbidden") {
-        return res
-          .status(err403.status)
-          .send({ message: "You cannot delete this item" });
-      }
-      res.status(err500.status).send({ message: err500.message });
-    });
+    .catch((err) => handleErrors(err, res));
 };
 
 // PUT /items/:itemId/likes - Like an item
 const likeItem = (req, res) => {
   const { itemId } = req.params;
 
-  if (!isValidObjectId(itemId)) {
-    return res.status(err400.status).send({ message: err400.message });
+  if (!itemId || !isValidObjectId(itemId)) {
+    return res
+      .status(err400.status)
+      .send({ message: "Invalid or missing item ID" });
   }
 
-  return clothingItem
+  clothingItem
     .findByIdAndUpdate(
       itemId,
       { $addToSet: { likes: req.user._id } },
@@ -84,7 +95,7 @@ const likeItem = (req, res) => {
     )
     .then((item) => {
       if (!item) {
-        return res.status(err404.status).send({ message: err404.message });
+        return res.status(err404.status).send({ message: "Item not found" });
       }
       res.status(200).send(item);
     })
@@ -95,11 +106,13 @@ const likeItem = (req, res) => {
 const unlikeItem = (req, res) => {
   const { itemId } = req.params;
 
-  if (!isValidObjectId(itemId)) {
-    return res.status(err400.status).send({ message: err400.message });
+  if (!itemId || !isValidObjectId(itemId)) {
+    return res
+      .status(err400.status)
+      .send({ message: "Invalid or missing item ID" });
   }
 
-  return clothingItem
+  clothingItem
     .findByIdAndUpdate(
       itemId,
       { $pull: { likes: req.user._id } },
@@ -107,10 +120,11 @@ const unlikeItem = (req, res) => {
     )
     .then((item) => {
       if (!item) {
-        return res.status(err404.status).send({ message: err404.message });
+        return res.status(err404.status).send({ message: "Item not found" });
       }
       res.status(200).send(item);
     })
     .catch((err) => handleErrors(err, res));
 };
+
 module.exports = { getItems, createItem, deleteItem, likeItem, unlikeItem };
