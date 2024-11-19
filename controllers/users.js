@@ -1,5 +1,10 @@
 const User = require("../models/user");
-const { err500, err404, err400, err409 } = require("../utils/errors");
+const {
+  INVALID_DATA_ERROR,
+  NOT_FOUND_ERROR,
+  DEFAULT_ERROR,
+  CONFLICT_ERROR,
+} = require("../utils/errors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = require("../utils/config");
@@ -10,7 +15,7 @@ const getUsers = (req, res) => {
     .then((users) => res.send(users))
     .catch((err) => {
       console.error(err);
-      res.status(err500.status).send({ message: err500.message });
+      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
     });
 };
 
@@ -22,12 +27,14 @@ const getCurrentUser = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.message === "NotFound") {
-        return res.status(err404.status).send({ message: err404.message });
+        return res.status(NOT_FOUND_ERROR).send({ message: "User not found" });
       }
       if (err.name === "CastError") {
-        return res.status(err400.status).send({ message: err400.message });
+        return res
+          .status(INVALID_DATA_ERROR)
+          .send({ message: "Invalid data provided" });
       }
-      res.status(err500.status).send({ message: err500.message });
+      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
     });
 };
 
@@ -47,12 +54,14 @@ const updateUser = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
-        return res.status(err404.status).send({ message: err404.message });
+        return res.status(NOT_FOUND_ERROR).send({ message: "User not found" });
       }
       if (err.name === "ValidationError") {
-        return res.status(err400.status).send({ message: err400.message });
+        return res
+          .status(INVALID_DATA_ERROR)
+          .send({ message: "Invalid data provided" });
       }
-      res.status(err500.status).send({ message: err500.message });
+      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
     });
 };
 
@@ -63,13 +72,13 @@ const createUser = (req, res) => {
   // Validate inputs
   if (!name || name.length < 2 || name.length > 30) {
     return res
-      .status(err400.status)
-      .send({ message: err400.message || "Invalid name length." });
+      .status(INVALID_DATA_ERROR)
+      .send({ message: "Invalid name length." });
   }
   if (!/^https?:\/\/\S+/.test(avatar)) {
     return res
-      .status(err400.status)
-      .send({ message: err400.message || "Invalid avatar URL." });
+      .status(INVALID_DATA_ERROR)
+      .send({ message: "Invalid avatar URL." });
   }
 
   User.findOne({ email })
@@ -90,15 +99,15 @@ const createUser = (req, res) => {
 
       if (err.message === "UserExists" || err.code === 11000) {
         return res
-          .status(err400.status)
+          .status(CONFLICT_ERROR)
           .send({ message: "User with this email already exists." });
       }
       if (err.name === "ValidationError") {
         return res
-          .status(err400.status)
-          .send({ message: err400.message || err.message });
+          .status(INVALID_DATA_ERROR)
+          .send({ message: "Invalid data provided" });
       }
-      res.status(err500.status).send({ message: err500.message });
+      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
     });
 };
 
@@ -108,7 +117,7 @@ const login = (req, res) => {
 
   if (!email || !password) {
     return res
-      .status(err400.status)
+      .status(INVALID_DATA_ERROR)
       .send({ message: "Email and password are required" });
   }
 
@@ -123,10 +132,10 @@ const login = (req, res) => {
       console.error(err);
       if (err.message.includes("Incorrect")) {
         return res
-          .status(err400.status)
+          .status(INVALID_DATA_ERROR)
           .send({ message: "Invalid email or password" });
       }
-      res.status(err500.status).send({ message: err500.message });
+      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
     });
 };
 

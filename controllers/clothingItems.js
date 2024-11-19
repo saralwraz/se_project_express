@@ -1,5 +1,11 @@
 const mongoose = require("mongoose");
-const { err500, err404, err400, err403 } = require("../utils/errors");
+const {
+  INVALID_DATA_ERROR,
+  NOT_FOUND_ERROR,
+  DEFAULT_ERROR,
+  AUTHORIZATION_ERROR,
+  FORBIDDEN_ERROR,
+} = require("../utils/errors");
 const clothingItem = require("../models/clothingItem");
 
 // Error handling
@@ -7,13 +13,22 @@ const handleErrors = (err, res) => {
   console.error(err);
   res.setHeader("Content-Type", "application/json");
   if (err.name === "ValidationError") {
-    res.status(err400.status).send({ message: err400.message });
-  } else if (err.name === "DocumentNotFoundError") {
-    res.status(err404.status).send({ message: err404.message });
+    return res
+      .status(INVALID_DATA_ERROR)
+      .send({ message: "Invalid data provided" });
+  } else if (
+    err.name === "DocumentNotFoundError" ||
+    err.message === "DocumentNotFoundError"
+  ) {
+    return res.status(NOT_FOUND_ERROR).send({ message: "Item not found" });
   } else if (err.name === "Forbidden") {
-    res.status(err403.status).send({ message: err403.message });
+    return res
+      .status(FORBIDDEN_ERROR)
+      .send({ message: "Forbidden: You cannot delete this item" });
   } else {
-    res.status(err500.status).send({ message: err500.message });
+    return res
+      .status(DEFAULT_ERROR)
+      .send({ message: "An unexpected error occurred" });
   }
 };
 
@@ -32,17 +47,17 @@ const getItems = (req, res) => {
 const createItem = (req, res) => {
   const { name, weather, imageUrl } = req.body;
 
-  // Validate required
+  // Validate required fields
   if (!name || !weather || !imageUrl) {
     return res
-      .status(err400.status)
+      .status(INVALID_DATA_ERROR)
       .send({ message: "Missing required fields for item creation" });
   }
 
   if (!req.user || !req.user._id) {
     return res
-      .status(err400.status)
-      .send({ message: "User information is missing" });
+      .status(AUTHORIZATION_ERROR)
+      .send({ message: "User information is missing or unauthorized" });
   }
 
   clothingItem
@@ -58,13 +73,13 @@ const deleteItem = (req, res) => {
   // Validate itemId
   if (!itemId || !isValidObjectId(itemId)) {
     return res
-      .status(err400.status)
+      .status(INVALID_DATA_ERROR)
       .send({ message: "Invalid or missing item ID" });
   }
 
   clothingItem
     .findById(itemId)
-    .orFail(new Error("DocumentNotFoundError"))
+    .orFail(() => new Error("DocumentNotFoundError"))
     .then((item) => {
       if (item.owner.toString() !== req.user._id) {
         const err = new Error("You cannot delete this item");
@@ -81,9 +96,10 @@ const deleteItem = (req, res) => {
 const likeItem = (req, res) => {
   const { itemId } = req.params;
 
+  // Validate itemId
   if (!itemId || !isValidObjectId(itemId)) {
     return res
-      .status(err400.status)
+      .status(INVALID_DATA_ERROR)
       .send({ message: "Invalid or missing item ID" });
   }
 
@@ -95,7 +111,7 @@ const likeItem = (req, res) => {
     )
     .then((item) => {
       if (!item) {
-        return res.status(err404.status).send({ message: "Item not found" });
+        return res.status(NOT_FOUND_ERROR).send({ message: "Item not found" });
       }
       res.status(200).send(item);
     })
@@ -106,9 +122,10 @@ const likeItem = (req, res) => {
 const unlikeItem = (req, res) => {
   const { itemId } = req.params;
 
+  // Validate itemId
   if (!itemId || !isValidObjectId(itemId)) {
     return res
-      .status(err400.status)
+      .status(INVALID_DATA_ERROR)
       .send({ message: "Invalid or missing item ID" });
   }
 
@@ -120,7 +137,7 @@ const unlikeItem = (req, res) => {
     )
     .then((item) => {
       if (!item) {
-        return res.status(err404.status).send({ message: "Item not found" });
+        return res.status(NOT_FOUND_ERROR).send({ message: "Item not found" });
       }
       res.status(200).send(item);
     })

@@ -1,8 +1,15 @@
+const INVALID_DATA_ERROR = 400;
+const AUTHORIZATION_ERROR = 401;
+const FORBIDDEN_ERROR = 403;
+const NOT_FOUND_ERROR = 404;
+const CONFLICT_ERROR = 409;
+const DEFAULT_ERROR = 500;
+
 module.exports = {
-  err400: { status: 400, message: "Invalid ID format" },
-  err401: { status: 401, message: "Unauthorized error" },
-  err403: { status: 403, message: "Forbidden" },
-  err404: { status: 404, message: "Item not found" },
-  err409: { status: 409, message: "Conflict. Resource already exists." },
-  err500: { status: 500, message: "An error occurred on the server" },
+  INVALID_DATA_ERROR,
+  NOT_FOUND_ERROR,
+  DEFAULT_ERROR,
+  CONFLICT_ERROR,
+  AUTHORIZATION_ERROR,
+  FORBIDDEN_ERROR,
 };
