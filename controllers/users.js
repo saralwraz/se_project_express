@@ -1,12 +1,14 @@
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+
 const {
   INVALID_DATA_ERROR,
   NOT_FOUND_ERROR,
   DEFAULT_ERROR,
   CONFLICT_ERROR,
 } = require("../utils/errors");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+
 const { JWT_SECRET } = require("../utils/config");
 
 // GET /users
@@ -50,18 +52,18 @@ const updateUser = (req, res) => {
     },
   )
     .orFail()
-    .then(() => res.send({ name, avatar }))
+    .then(() => res.status(200).send({ name, avatar }))
     .catch((err) => {
-      console.error(err);
-      if (err.name === "DocumentNotFoundError") {
-        return res.status(NOT_FOUND_ERROR).send({ message: "User not found" });
-      }
       if (err.name === "ValidationError") {
-        return res
-          .status(INVALID_DATA_ERROR)
-          .send({ message: "Invalid data provided" });
+        return res.status(INVALID_DATA_ERROR).send({ message: "Bad Request" });
       }
-      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
+      if (err.name === "DocumentNotFoundError") {
+        return res.status(NOT_FOUND_ERROR).send({ message: "Page Not Found" });
+      }
+
+      return res
+        .status(DEFAULT_ERROR)
+        .send({ message: "An error has occurred on the server" });
     });
 };
 
@@ -69,45 +71,28 @@ const updateUser = (req, res) => {
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  // Validate inputs
-  if (!name || name.length < 2 || name.length > 30) {
+  if (!email || !password) {
     return res
       .status(INVALID_DATA_ERROR)
-      .send({ message: "Invalid name length." });
+      .send({ message: "email or password is incorrect" });
   }
-  if (!/^https?:\/\/\S+/.test(avatar)) {
-    return res
-      .status(INVALID_DATA_ERROR)
-      .send({ message: "Invalid avatar URL." });
-  }
-
-  User.findOne({ email })
-    .then((existingUser) => {
-      if (existingUser) {
-        return Promise.reject(new Error("UserExists"));
-      }
-      return bcrypt.hash(password, 10);
-    })
+  return bcrypt
+    .hash(req.body.password, 10)
     .then((hash) => User.create({ name, avatar, email, password: hash }))
-    .then((user) => {
-      res
-        .status(201)
-        .send({ name: user.name, avatar: user.avatar, email: user.email });
-    })
+    .then((user) =>
+      res.send({ name: user.name, avatar: user.avatar, email: user.email }),
+    )
     .catch((err) => {
       console.error(err);
-
-      if (err.message === "UserExists" || err.code === 11000) {
-        return res
-          .status(CONFLICT_ERROR)
-          .send({ message: "User with this email already exists." });
+      if (err.name === `ValidationError`) {
+        return res.status(INVALID_DATA_ERROR).send({ message: "Bad Request" });
       }
-      if (err.name === "ValidationError") {
-        return res
-          .status(INVALID_DATA_ERROR)
-          .send({ message: "Invalid data provided" });
+      if (err.code === 11000) {
+        return res.status(CONFLICT_ERROR).send({ message: "duplicate user" });
       }
-      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
+      return res
+        .status(DEFAULT_ERROR)
+        .send({ message: "error from createUser" });
     });
 };
 
@@ -121,16 +106,16 @@ const login = (req, res) => {
       .send({ message: "Email and password are required" });
   }
 
-  User.findUserByCredentials(email, password)
+  return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
       });
-      res.send({ token });
+      res.send({ token: `Bearer ${token}` });
     })
     .catch((err) => {
       console.error(err);
-      if (err.message.includes("Incorrect")) {
+      if (err.message.includes("Incorrect email or password")) {
         return res
           .status(INVALID_DATA_ERROR)
           .send({ message: "Invalid email or password" });
