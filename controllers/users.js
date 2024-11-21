@@ -69,30 +69,39 @@ const updateUser = (req, res) => {
 
 // POST /users - create new user
 const createUser = (req, res) => {
-  const { name, avatar, email, password } = req.body;
+  const { name, avatar = "", email, password } = req.body;
 
   if (!email || !password) {
     return res
       .status(INVALID_DATA_ERROR)
-      .send({ message: "email or password is incorrect" });
+      .send({ message: "Email and password are required" });
   }
+
   return bcrypt
-    .hash(req.body.password, 10)
-    .then((hash) => User.create({ name, avatar, email, password: hash }))
-    .then((user) =>
-      res.send({ name: user.name, avatar: user.avatar, email: user.email }),
+    .hash(password, 10)
+    .then((hashedPassword) =>
+      User.create({ name, avatar, email, password: hashedPassword }),
     )
+    .then((user) => {
+      res.send({
+        name: user.name,
+        avatar: user.avatar || "",
+        email: user.email,
+      });
+    })
     .catch((err) => {
       console.error(err);
-      if (err.name === `ValidationError`) {
-        return res.status(INVALID_DATA_ERROR).send({ message: "Bad Request" });
-      }
       if (err.code === 11000) {
-        return res.status(CONFLICT_ERROR).send({ message: "duplicate user" });
+        return res
+          .status(CONFLICT_ERROR)
+          .send({ message: "message": "Email already exists" });
+      }
+      if (err.name === "ValidationError") {
+        return res.status(INVALID_DATA_ERROR).send({ message: err.message });
       }
       return res
         .status(DEFAULT_ERROR)
-        .send({ message: "error from createUser" });
+        .send({ message: "An error occurred on the server" });
     });
 };
 
