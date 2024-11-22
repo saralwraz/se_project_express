@@ -77,20 +77,32 @@ const createUser = (req, res) => {
       .send({ message: "Email and password are required" });
   }
 
-  return bcrypt
-    .hash(password, 10)
-    .then((hashedPassword) =>
-      User.create({ name, avatar, email, password: hashedPassword }),
-    )
-    .then((user) => {
-      res.send({
-        name: user.name,
-        avatar: user.avatar || "",
-        email: user.email,
-      });
+  return User.findOne({ email })
+    .then((existingUser) => {
+      if (existingUser) {
+        // Conflict error handling
+        return res
+          .status(CONFLICT_ERROR)
+          .send({ message: "Email already exists" });
+      }
+
+      return bcrypt
+        .hash(password, 10)
+        .then((hashedPassword) =>
+          User.create({ name, avatar, email, password: hashedPassword }),
+        )
+        .then((user) => {
+          // Send response only for successful user creation
+          res.send({
+            name: user.name,
+            avatar: user.avatar || "",
+            email: user.email,
+          });
+        });
     })
     .catch((err) => {
-      console.error(err);
+      // Handle errors in a single place
+      console.error("Error code:", err.code);
       if (err.code === 11000) {
         return res
           .status(CONFLICT_ERROR)
