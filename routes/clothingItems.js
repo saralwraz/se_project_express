@@ -1,7 +1,6 @@
 const express = require("express");
 const auth = require("../middlewares/auth");
 const router = express.Router();
-
 const {
   createItem,
   getItems,
@@ -9,6 +8,8 @@ const {
   likeItem,
   unlikeItem,
 } = require("../controllers/clothingItems");
+
+// blank line
 
 // createItem
 router.post("/", auth, createItem);
