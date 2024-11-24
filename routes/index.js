@@ -1,12 +1,11 @@
 const router = require("express").Router();
 const clothingItems = require("./clothingItems");
 const userRouter = require("./users");
-const auth = require("../middlewares/auth");
 const { NOT_FOUND_ERROR } = require("../utils/errors");
 const { login, createUser } = require("../controllers/users");
 
 router.use("/items", clothingItems);
-router.use("/users", auth, userRouter);
+router.use("/users", userRouter);
 router.post("/signin", login);
 router.post("/signup", createUser);
 

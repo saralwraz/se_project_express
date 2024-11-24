@@ -1,9 +1,12 @@
 # WTWR (What to Wear?): Back End
-The back-end project is focused on creating a server for the WTWR application. You’ll gain a deeper understanding of how to work with databases, set up security and testing, and deploy web applications on a remote machine. The eventual goal is to create a server with an API and user authorization.
-## Running the Project
-`npm run start` — to launch the server 
 
-`npm run dev` — to launch the server with the hot reload feature
+The back-end project is focused on creating a server for the WTWR application. There are two collections of data, users and items of clothing, and they work inside a database created in MongoDB. This project uses schemas, controllers, and routes to assemble item and user requirements that will place them in the appropriate parts in the database. The site also uses middleware for validation of both items and users, and disallows invalid data like duplicate email submissions and improperly submitted clothing item data.
 
-### Testing
-Before committing your code, make sure you edit the file `sprint.txt` in the root folder. The file `sprint.txt` should contain the number of the sprint you're currently working on. For ex. 12
+## This project relied on these technologies or applications
+
+*Javascript
+*express
+*ESLint
+*Postman
+*MongoDB
+*CORS was also installed, which will be used in connecting the front and backend parts of the WTWR app.

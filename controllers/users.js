@@ -5,21 +5,12 @@ const User = require("../models/user");
 const {
   INVALID_DATA_ERROR,
   NOT_FOUND_ERROR,
+  AUTHORIZATION_ERROR,
   DEFAULT_ERROR,
   CONFLICT_ERROR,
 } = require("../utils/errors");
 
 const { JWT_SECRET } = require("../utils/config");
-
-// GET /users
-const getUsers = (req, res) => {
-  User.find({})
-    .then((users) => res.send(users))
-    .catch((err) => {
-      console.error(err);
-      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
-    });
-};
 
 // GET /users/me
 const getCurrentUser = (req, res) => {
@@ -36,7 +27,9 @@ const getCurrentUser = (req, res) => {
           .status(INVALID_DATA_ERROR)
           .send({ message: "Invalid data provided" });
       }
-      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
+      return res
+        .status(DEFAULT_ERROR)
+        .send({ message: "Internal Server Error" });
     });
 };
 
@@ -69,7 +62,7 @@ const updateUser = (req, res) => {
 
 // POST /users - create new user
 const createUser = (req, res) => {
-  const { name, avatar = "", email, password } = req.body;
+  const { name, avatar, email, password } = req.body;
 
   if (!email || !password) {
     return res
@@ -77,40 +70,34 @@ const createUser = (req, res) => {
       .send({ message: "Email and password are required" });
   }
 
-  return User.findOne({ email })
-    .then((existingUser) => {
-      if (existingUser) {
-        // Conflict error handling
+  return bcrypt
+    .hash(password, 10)
+    .then((hashedPassword) =>
+      User.create({ name, avatar, email, password: hashedPassword }),
+    )
+    .then((user) => {
+      // Successful user creation
+      res.send({
+        name: user.name,
+        avatar: user.avatar,
+        email: user.email,
+      });
+    })
+    .catch((err) => {
+      // Handle errors
+      console.error("Error code:", err.code);
+
+      if (err.code === 11000) {
+        // Duplicate email error
         return res
           .status(CONFLICT_ERROR)
           .send({ message: "Email already exists" });
       }
 
-      return bcrypt
-        .hash(password, 10)
-        .then((hashedPassword) =>
-          User.create({ name, avatar, email, password: hashedPassword }),
-        )
-        .then((user) => {
-          // Send response only for successful user creation
-          res.send({
-            name: user.name,
-            avatar: user.avatar || "",
-            email: user.email,
-          });
-        });
-    })
-    .catch((err) => {
-      // Handle errors in a single place
-      console.error("Error code:", err.code);
-      if (err.code === 11000) {
-        return res
-          .status(CONFLICT_ERROR)
-          .send({ message: "Email already exists" });
-      }
       if (err.name === "ValidationError") {
         return res.status(INVALID_DATA_ERROR).send({ message: err.message });
       }
+
       return res
         .status(DEFAULT_ERROR)
         .send({ message: "An error occurred on the server" });
@@ -132,7 +119,7 @@ const login = (req, res) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
       });
-      res.send({ token: `Bearer ${token}` });
+      res.send({ token });
     })
     .catch((err) => {
       console.error(err);
@@ -141,11 +128,13 @@ const login = (req, res) => {
         err.message.includes("Incorrect password")
       ) {
         return res
-          .status(INVALID_DATA_ERROR)
+          .status(AUTHORIZATION_ERROR)
           .send({ message: "Invalid email or password" });
       }
-      res.status(DEFAULT_ERROR).send({ message: "Internal Server Error" });
+      return res
+        .status(DEFAULT_ERROR)
+        .send({ message: "Internal Server Error" });
     });
 };
 
-module.exports = { getUsers, getCurrentUser, createUser, updateUser, login };
+module.exports = { getCurrentUser, createUser, updateUser, login };

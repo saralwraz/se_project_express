@@ -3,7 +3,6 @@ const {
   INVALID_DATA_ERROR,
   NOT_FOUND_ERROR,
   DEFAULT_ERROR,
-  AUTHORIZATION_ERROR,
   FORBIDDEN_ERROR,
 } = require("../utils/errors");
 const clothingItem = require("../models/clothingItem");
@@ -16,51 +15,45 @@ const handleErrors = (err, res) => {
     return res
       .status(INVALID_DATA_ERROR)
       .send({ message: "Invalid data provided" });
-  } else if (
+  }
+  if (
     err.name === "DocumentNotFoundError" ||
     err.message === "DocumentNotFoundError"
   ) {
     return res.status(NOT_FOUND_ERROR).send({ message: "Item not found" });
-  } else if (err.name === "Forbidden") {
+  }
+  if (err.name === "Forbidden") {
     return res
       .status(FORBIDDEN_ERROR)
       .send({ message: "Forbidden: You cannot delete this item" });
-  } else {
-    return res
-      .status(DEFAULT_ERROR)
-      .send({ message: "An unexpected error occurred" });
   }
+  // Default return for unexpected errors
+  return res
+    .status(DEFAULT_ERROR)
+    .send({ message: "An unexpected error occurred" });
 };
 
-// Check valid ObjectId
+// Define isValidObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // GET /items - Get all items
-const getItems = (req, res) => {
+const getItems = (req, res) =>
   clothingItem
     .find({})
     .then((items) => res.status(200).send(items))
     .catch((err) => handleErrors(err, res));
-};
 
 // POST /items - Create a new item
 const createItem = (req, res) => {
   const { name, weather, imageUrl } = req.body;
 
-  // Validate required fields
   if (!name || !weather || !imageUrl) {
     return res
       .status(INVALID_DATA_ERROR)
       .send({ message: "Missing required fields for item creation" });
   }
 
-  if (!req.user || !req.user._id) {
-    return res
-      .status(AUTHORIZATION_ERROR)
-      .send({ message: "User information is missing or unauthorized" });
-  }
-
-  clothingItem
+  return clothingItem
     .create({ name, weather, imageUrl, owner: req.user._id })
     .then((item) => res.status(201).send({ data: item }))
     .catch((err) => handleErrors(err, res));
@@ -70,14 +63,13 @@ const createItem = (req, res) => {
 const deleteItem = (req, res) => {
   const { itemId } = req.params;
 
-  // Validate itemId
   if (!itemId || !isValidObjectId(itemId)) {
     return res
       .status(INVALID_DATA_ERROR)
       .send({ message: "Invalid or missing item ID" });
   }
 
-  clothingItem
+  return clothingItem
     .findById(itemId)
     .orFail(() => new Error("DocumentNotFoundError"))
     .then((item) => {
@@ -96,25 +88,23 @@ const deleteItem = (req, res) => {
 const likeItem = (req, res) => {
   const { itemId } = req.params;
 
-  // Validate itemId
   if (!itemId || !isValidObjectId(itemId)) {
     return res
       .status(INVALID_DATA_ERROR)
       .send({ message: "Invalid or missing item ID" });
   }
 
-  clothingItem
+  return clothingItem
     .findByIdAndUpdate(
       itemId,
       { $addToSet: { likes: req.user._id } },
       { new: true },
     )
-    .then((item) => {
-      if (!item) {
-        return res.status(NOT_FOUND_ERROR).send({ message: "Item not found" });
-      }
-      res.status(200).send(item);
-    })
+    .then((item) =>
+      item
+        ? res.status(200).send(item)
+        : res.status(NOT_FOUND_ERROR).send({ message: "Item not found" }),
+    )
     .catch((err) => handleErrors(err, res));
 };
 
@@ -122,25 +112,23 @@ const likeItem = (req, res) => {
 const unlikeItem = (req, res) => {
   const { itemId } = req.params;
 
-  // Validate itemId
   if (!itemId || !isValidObjectId(itemId)) {
     return res
       .status(INVALID_DATA_ERROR)
       .send({ message: "Invalid or missing item ID" });
   }
 
-  clothingItem
+  return clothingItem
     .findByIdAndUpdate(
       itemId,
       { $pull: { likes: req.user._id } },
       { new: true },
     )
-    .then((item) => {
-      if (!item) {
-        return res.status(NOT_FOUND_ERROR).send({ message: "Item not found" });
-      }
-      res.status(200).send(item);
-    })
+    .then((item) =>
+      item
+        ? res.status(200).send(item)
+        : res.status(NOT_FOUND_ERROR).send({ message: "Item not found" }),
+    )
     .catch((err) => handleErrors(err, res));
 };
 
