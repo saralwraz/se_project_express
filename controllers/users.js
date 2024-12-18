@@ -35,17 +35,21 @@ const getCurrentUser = (req, res) => {
 
 // PATCH update users/me
 const updateUser = (req, res) => {
-  const { name, avatar } = req.body;
+  const { name, email, avatar, password } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
-    { name, avatar },
+    { name, email, avatar, password },
     {
       new: true,
       runValidators: true,
     },
   )
     .orFail()
-    .then(() => res.status(200).send({ name, avatar }))
+    .then((user) => {
+      const userWithoutPassword = user.toObject();
+      delete userWithoutPassword.password;
+      res.status(200).send(userWithoutPassword);
+    })
     .catch((err) => {
       if (err.name === "ValidationError") {
         return res.status(INVALID_DATA_ERROR).send({ message: "Bad Request" });
