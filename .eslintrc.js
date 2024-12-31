@@ -13,6 +13,8 @@ module.exports = {
     "no-underscore-dangle": ["error", { allow: ["_id"] }],
     "padding-line-between-statements": [
       "error",
+      "no-unused-vars",
+      ["error", { argsIgnorePattern: "next" }],
       { blankLine: "always", prev: "import", next: "*" },
     ],
   },
