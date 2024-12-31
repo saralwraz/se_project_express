@@ -23,12 +23,10 @@ mongoose
 //Logger
 app.use(requestLogger);
 
-// Routes
-app.use(routes);
-
 // JSON body parsing
 app.use(express.json());
 
+// Routes
 app.use("/", mainRouter);
 
 // Start the server
