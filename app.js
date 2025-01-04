@@ -9,6 +9,8 @@ const { requestLogger, errorLogger } = require("./middlewares/logger");
 const app = express();
 const { PORT = 3001 } = process.env;
 
+require("dotenv").config();
+
 //Cors
 app.use(cors());
 
