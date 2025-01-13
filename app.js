@@ -3,6 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const helmet = require("helmet");
+const limiter = require("./middlewares/rateLimiter");
 const mainRouter = require("./routes/index");
 const errorHandler = require("./middlewares/error-handler");
 const { errors } = require("celebrate");
@@ -21,6 +23,12 @@ mongoose
     console.log("Connected to database");
   })
   .catch(console.error);
+
+//Helmet
+app.use(helmet());
+
+//Rate limit
+app.use(limiter);
 
 //Logger
 app.use(requestLogger);
