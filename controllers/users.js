@@ -1,40 +1,20 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
-
-const {
-  INVALID_DATA_ERROR,
-  NOT_FOUND_ERROR,
-  AUTHORIZATION_ERROR,
-  DEFAULT_ERROR,
-  CONFLICT_ERROR,
-} = require("../utils/errors");
-
+const ValidationError = require("../utils/errors/ValidationError");
+const NotFoundError = require("../utils/errors/NotFoundError");
+const AuthError = require("../utils/errors/AuthError");
+const DuplicateError = require("../utils/errors/DuplicateError");
 const { JWT_SECRET } = require("../utils/config");
 
-// GET /users/me
-const getCurrentUser = (req, res) => {
+const getCurrentUser = (req, res, next) => {
   User.findById(req.user._id)
-    .orFail(() => new Error("NotFound"))
+    .orFail(() => new NotFoundError("User not found"))
     .then((user) => res.send(user))
-    .catch((err) => {
-      console.error(err);
-      if (err.message === "NotFound") {
-        return res.status(NOT_FOUND_ERROR).send({ message: "User not found" });
-      }
-      if (err.name === "CastError") {
-        return res
-          .status(INVALID_DATA_ERROR)
-          .send({ message: "Invalid data provided" });
-      }
-      return res
-        .status(DEFAULT_ERROR)
-        .send({ message: "Internal Server Error" });
-    });
+    .catch(next);
 };
 
-// PATCH update users/me
-const updateUser = (req, res) => {
+const updateUser = (req, res, next) => {
   const { name, email, avatar, password } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
@@ -44,34 +24,26 @@ const updateUser = (req, res) => {
       runValidators: true,
     },
   )
-    .orFail()
+    .orFail(() => new NotFoundError("User not found"))
     .then((user) => {
       const userWithoutPassword = user.toObject();
       delete userWithoutPassword.password;
-      res.status(200).send(userWithoutPassword);
+      res.send(userWithoutPassword);
     })
     .catch((err) => {
       if (err.name === "ValidationError") {
-        return res.status(INVALID_DATA_ERROR).send({ message: "Bad Request" });
+        next(new ValidationError("Invalid data provided"));
+      } else {
+        next(err);
       }
-      if (err.name === "DocumentNotFoundError") {
-        return res.status(NOT_FOUND_ERROR).send({ message: "Page Not Found" });
-      }
-
-      return res
-        .status(DEFAULT_ERROR)
-        .send({ message: "An error has occurred on the server" });
     });
 };
 
-// POST /users - create new user
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   const { name, avatar, email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(INVALID_DATA_ERROR)
-      .send({ message: "Email and password are required" });
+    throw new ValidationError("Email and password are required");
   }
 
   return bcrypt
@@ -80,7 +52,6 @@ const createUser = (req, res) => {
       User.create({ name, avatar, email, password: hashedPassword }),
     )
     .then((user) => {
-      // Successful user creation
       res.send({
         name: user.name,
         avatar: user.avatar,
@@ -88,34 +59,21 @@ const createUser = (req, res) => {
       });
     })
     .catch((err) => {
-      // Handle errors
-      console.error("Error code:", err.code);
-
       if (err.code === 11000) {
-        // Duplicate email error
-        return res
-          .status(CONFLICT_ERROR)
-          .send({ message: "Email already exists" });
+        next(new DuplicateError("Email already exists"));
+      } else if (err.name === "ValidationError") {
+        next(new ValidationError(err.message));
+      } else {
+        next(err);
       }
-
-      if (err.name === "ValidationError") {
-        return res.status(INVALID_DATA_ERROR).send({ message: err.message });
-      }
-
-      return res
-        .status(DEFAULT_ERROR)
-        .send({ message: "An error occurred on the server" });
     });
 };
 
-// POST /login
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(INVALID_DATA_ERROR)
-      .send({ message: "Email and password are required" });
+    throw new ValidationError("Email and password are required");
   }
 
   return User.findUserByCredentials(email, password)
@@ -126,18 +84,7 @@ const login = (req, res) => {
       res.send({ token });
     })
     .catch((err) => {
-      console.error(err);
-      if (
-        err.message.includes("Incorrect email") ||
-        err.message.includes("Incorrect password")
-      ) {
-        return res
-          .status(AUTHORIZATION_ERROR)
-          .send({ message: "Invalid email or password" });
-      }
-      return res
-        .status(DEFAULT_ERROR)
-        .send({ message: "Internal Server Error" });
+      next(new AuthError("Invalid email or password"));
     });
 };
 

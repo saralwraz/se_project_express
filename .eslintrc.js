@@ -11,10 +11,9 @@ module.exports = {
   rules: {
     "no-console": "off",
     "no-underscore-dangle": ["error", { allow: ["_id"] }],
+    "no-unused-vars": ["error", { argsIgnorePattern: "next" }],
     "padding-line-between-statements": [
       "error",
-      "no-unused-vars",
-      ["error", { argsIgnorePattern: "next" }],
       { blankLine: "always", prev: "import", next: "*" },
     ],
   },

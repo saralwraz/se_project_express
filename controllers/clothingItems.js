@@ -1,97 +1,62 @@
 const mongoose = require("mongoose");
-const {
-  INVALID_DATA_ERROR,
-  NOT_FOUND_ERROR,
-  DEFAULT_ERROR,
-  FORBIDDEN_ERROR,
-} = require("../utils/errors");
 const clothingItem = require("../models/clothingItem");
+const ValidationError = require("../utils/errors/ValidationError");
+const NotFoundError = require("../utils/errors/NotFoundError");
+const ForbiddenError = require("../utils/errors/ForbiddenError");
 
-// Error handling
-const handleErrors = (err, res) => {
-  console.error(err);
-  res.setHeader("Content-Type", "application/json");
-  if (err.name === "ValidationError") {
-    return res
-      .status(INVALID_DATA_ERROR)
-      .send({ message: "Invalid data provided" });
-  }
-  if (
-    err.name === "DocumentNotFoundError" ||
-    err.message === "DocumentNotFoundError"
-  ) {
-    return res.status(NOT_FOUND_ERROR).send({ message: "Item not found" });
-  }
-  if (err.name === "Forbidden") {
-    return res
-      .status(FORBIDDEN_ERROR)
-      .send({ message: "Forbidden: You cannot delete this item" });
-  }
-  // Default return for unexpected errors
-  return res
-    .status(DEFAULT_ERROR)
-    .send({ message: "An unexpected error occurred" });
-};
-
-// Define isValidObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-// GET /items - Get all items
-const getItems = (req, res) =>
+const getItems = (req, res, next) => {
   clothingItem
     .find({})
-    .then((items) => res.status(200).send(items))
-    .catch((err) => handleErrors(err, res));
+    .then((items) => res.send(items))
+    .catch(next);
+};
 
-// POST /items - Create a new item
-const createItem = (req, res) => {
+const createItem = (req, res, next) => {
   const { name, weather, imageUrl } = req.body;
 
   if (!name || !weather || !imageUrl) {
-    return res
-      .status(INVALID_DATA_ERROR)
-      .send({ message: "Missing required fields for item creation" });
+    throw new ValidationError("Missing required fields for item creation");
   }
 
   return clothingItem
     .create({ name, weather, imageUrl, owner: req.user._id })
     .then((item) => res.status(201).send({ data: item }))
-    .catch((err) => handleErrors(err, res));
+    .catch((err) => {
+      if (err.name === "ValidationError") {
+        next(new ValidationError(err.message));
+      } else {
+        next(err);
+      }
+    });
 };
 
-// DELETE /items/:itemId - Delete an item by ID
-const deleteItem = (req, res) => {
+const deleteItem = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!itemId || !isValidObjectId(itemId)) {
-    return res
-      .status(INVALID_DATA_ERROR)
-      .send({ message: "Invalid or missing item ID" });
+    throw new ValidationError("Invalid or missing item ID");
   }
 
   return clothingItem
     .findById(itemId)
-    .orFail(() => new Error("DocumentNotFoundError"))
+    .orFail(() => new NotFoundError("Item not found"))
     .then((item) => {
       if (item.owner.toString() !== req.user._id) {
-        const err = new Error("You cannot delete this item");
-        err.name = "Forbidden";
-        throw err;
+        throw new ForbiddenError("You cannot delete this item");
       }
       return item.remove();
     })
-    .then(() => res.status(200).send({ message: "Item successfully deleted" }))
-    .catch((err) => handleErrors(err, res));
+    .then(() => res.send({ message: "Item successfully deleted" }))
+    .catch(next);
 };
 
-// PUT /items/:itemId/likes - Like an item
-const likeItem = (req, res) => {
+const likeItem = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!itemId || !isValidObjectId(itemId)) {
-    return res
-      .status(INVALID_DATA_ERROR)
-      .send({ message: "Invalid or missing item ID" });
+    throw new ValidationError("Invalid or missing item ID");
   }
 
   return clothingItem
@@ -100,22 +65,16 @@ const likeItem = (req, res) => {
       { $addToSet: { likes: req.user._id } },
       { new: true },
     )
-    .then((item) =>
-      item
-        ? res.status(200).send(item)
-        : res.status(NOT_FOUND_ERROR).send({ message: "Item not found" }),
-    )
-    .catch((err) => handleErrors(err, res));
+    .orFail(() => new NotFoundError("Item not found"))
+    .then((item) => res.send(item))
+    .catch(next);
 };
 
-// DELETE /items/:itemId/likes - Unlike an item
-const unlikeItem = (req, res) => {
+const unlikeItem = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!itemId || !isValidObjectId(itemId)) {
-    return res
-      .status(INVALID_DATA_ERROR)
-      .send({ message: "Invalid or missing item ID" });
+    throw new ValidationError("Invalid or missing item ID");
   }
 
   return clothingItem
@@ -124,12 +83,9 @@ const unlikeItem = (req, res) => {
       { $pull: { likes: req.user._id } },
       { new: true },
     )
-    .then((item) =>
-      item
-        ? res.status(200).send(item)
-        : res.status(NOT_FOUND_ERROR).send({ message: "Item not found" }),
-    )
-    .catch((err) => handleErrors(err, res));
+    .orFail(() => new NotFoundError("Item not found"))
+    .then((item) => res.send(item))
+    .catch(next);
 };
 
 module.exports = { getItems, createItem, deleteItem, likeItem, unlikeItem };
