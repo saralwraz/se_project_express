@@ -83,7 +83,7 @@ const login = (req, res, next) => {
       });
       res.send({ token });
     })
-    .catch((err) => {
+    .catch(() => {
       next(new AuthError("Invalid email or password"));
     });
 };
