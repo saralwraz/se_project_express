@@ -13,10 +13,8 @@ router.use("/users", userRouter);
 router.post("/signin", validateLogin, login);
 router.post("/signup", validateCreateUser, createUser);
 
-router.use((req, res) => {
-  router.use((req, res, next) => {
-    next(new NotFoundError("Router not found"));
-  });
+router.use((req, res, next) => {
+  next(new NotFoundError("Router not found"));
 });
 
 module.exports = router;
